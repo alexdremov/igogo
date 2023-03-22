@@ -7,12 +7,11 @@ class IpythonWatcher(object):
         self.shell = ip
 
     def pre_execute(self):
-        ...
+        stream = OutputStream(Output())
+        stream.activate()
 
     def pre_run_cell(self, info):
-        out = Output()
-        stream = OutputStream(out)
-        stream.activate()
+        ...
 
     def post_execute(self):
         ...

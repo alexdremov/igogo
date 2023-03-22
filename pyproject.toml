@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "igogo"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
     { name = "Alex Dremov", email = "igogo@alexdremov.me" },
 ]
@@ -19,8 +19,9 @@ classifiers = [
 ]
 keywords = ["jupyterlab", "ipython", "jupyter", "execute", "python"]
 dependencies = [
-    'IPython',
-    'ipykernel'
+    'IPython >= 8.0.0',
+    'ipykernel >= 6.0.0',
+    'greenback >= 1.1.1'
 ]
 packages = [
     { include = "igogo" }
