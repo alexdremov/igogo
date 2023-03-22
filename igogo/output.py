@@ -3,6 +3,7 @@ import string
 import io
 import sys
 from IPython import display
+from IPython.core.interactiveshell import InteractiveShell
 
 
 def is_lab_notebook():
@@ -12,56 +13,112 @@ def is_lab_notebook():
     return any(re.search('jupyter-lab', x)
                for x in psutil.Process().parent().cmdline())
 
-class Output:
-    def __init__(self, kind='text', display_id=None):
+
+class OutputBase:
+    def __init__(self, display_id=None):
         if display_id is None:
             self.display_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=100))
         else:
             self.display_id = display_id
 
-        self.h = display.display(display_id=self.display_id)
-        self.kind = kind
-        self.content = ''
-        self.mime_type = None
+        self.handle = display.display(display_id=self.display_id)
+        self.metadata = dict()
         self.dic_kind = {
             'text': 'text/plain',
             'markdown': 'text/markdown',
             'html': 'text/html',
+            'stderr': 'application/vnd.jupyter.stderr',
+            'stdout': 'application/vnd.jupyter.stdout'
         }
+        self.objs = []
         if not is_lab_notebook():
             self.display()
 
-    def display(self):
-        self.h.display({'text/plain': ''}, raw=True)
+    def display(self, update=False):
+        display.display(
+            *self.objs,
+            display_id=self.display_id,
+            update=update,
+            raw=True,
+            metadata=self.metadata,
+            transient={
+                'display_id': self.display_id
+            }
+        )
 
-    def _build_obj(self, content, kind, append, new_line):
-        self.mime_type = self.dic_kind.get(kind)
-        if not self.mime_type:
-            return content, False
-        if append:
-            sep = '\n' if new_line else ''
-            self.content = self.content + sep + content
-        else:
-            self.content = content
-        if self.kind == 'markdown':
-            self.content = self.content.replace('\n', '<br>')
-        return {self.mime_type: self.content}, True
+    def _build_obj(self, content, kind):
+        mime_type = self.dic_kind.get(kind, kind)
+        print({mime_type: content}, file=open('log.txt', 'w'))
+        return {mime_type: content}
 
-    def update(self, content, append=True, new_line=False):
-        obj, raw = self._build_obj(content, self.kind, append, new_line)
-        self.h.update(obj, raw=raw)
+    def _update(self):
+        self.display(update=True)
+
+    def clear(self):
+        self.text = ''
+        self.objs = []
+        self.metadata = dict()
+        self._update()
 
 
-class OutputStream(io.IOBase):
-    def __init__(self, out: Output):
-        self.out = out
+class OutputText(OutputBase, io.IOBase):
+
+    def __init__(self, kind, display_id=None):
+        super().__init__(display_id)
+        self.text = ''
+        self.kind = kind
+
+    def add_text(self, content):
+        self.text += content
+        self.objs = [self._build_obj(self.text, self.kind)]
+        self._update()
+
+    def flush(self): ...
 
     def write(self, data):
-        self.out.update(data)
+        self.add_text(data)
 
-    def flush(self):
-        pass
+
+class OutputObject(OutputBase):
+    def add_object(self, obj, include=None, exclude=None):
+        fmt = InteractiveShell.instance().display_formatter.format
+        format_dict, md_dict = fmt(obj, include=include, exclude=exclude)
+        if not format_dict:
+            return
+        self.objs = [format_dict]
+        self.metadata = md_dict
+        self._update()
+
+
+class OutputTextStyled(OutputBase, io.IOBase):
+    def __init__(self, style_start='', style_end='', kind='html'):
+        super().__init__()
+        self.text = ''
+        self.style_end = style_end
+        self.style_start = style_start
+        self.kind = kind
+
+    def _build_styled(self, content):
+        type = self.dic_kind.get(self.kind)
+        content = self.style_start + content + self.style_end
+        return {type: content}
+
+    def add_text(self, content):
+        self.text += content
+        self.objs = [self._build_styled(self.text)]
+        self._update()
+
+    def write(self, data):
+        self.add_text(data)
+
+    def flush(self): ...
+
+
+class OutputStreamsSetter:
+    def __init__(self, stdout: OutputText, stderr: OutputText):
+        self.stdout = stdout
+        self.stderr = stderr
 
     def activate(self):
-        sys.stdout = self
-        sys.stderr = self
+        sys.stdout = self.stdout
+        sys.stderr = self.stderr

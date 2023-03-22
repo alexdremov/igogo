@@ -1,20 +1,32 @@
 from ipykernel.zmqshell import ZMQInteractiveShell
-from .output import OutputStream, Output
+from .output import OutputStreamsSetter, OutputText, OutputTextStyled
+
+import sys
 
 
 class IpythonWatcher(object):
     def __init__(self, ip: ZMQInteractiveShell):
         self.shell = ip
+        self._save_prev_outputs()
+
+    def _save_prev_outputs(self):
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+
+    def _activate_prev_outputs(self):
+        sys.stdout = self.stdout
+        sys.stderr = self.stderr
 
     def pre_execute(self):
-        stream = OutputStream(Output())
+        self._save_prev_outputs()
+        stream = OutputStreamsSetter(stdout=OutputText(kind='stdout'), stderr=OutputText(kind='stderr'))
         stream.activate()
 
     def pre_run_cell(self, info):
         ...
 
     def post_execute(self):
-        ...
+        self._activate_prev_outputs()
 
     def post_run_cell(self, result):
         ...
