@@ -4,6 +4,14 @@ import io
 import sys
 from IPython import display
 
+
+def is_lab_notebook():
+    import re
+    import psutil
+
+    return any(re.search('jupyter-lab', x)
+               for x in psutil.Process().parent().cmdline())
+
 class Output:
     def __init__(self, kind='text', display_id=None):
         if display_id is None:
@@ -20,6 +28,8 @@ class Output:
             'markdown': 'text/markdown',
             'html': 'text/html',
         }
+        if not is_lab_notebook():
+            self.display()
 
     def display(self):
         self.h.display({'text/plain': ''}, raw=True)
