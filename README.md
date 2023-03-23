@@ -9,7 +9,7 @@ https://user-images.githubusercontent.com/25539425/227176976-2bdda463-ecc9-4431-
 
 ---
 
-## Use cases
+## Use Cases
 1) **You have a long-running cell, and you need to check something.
    You can just start the second cell without interrupting a long-running cell**.
    > **Example:** you run a machine learning train loop and want to immediately save the model's weights or check metrics.
@@ -68,7 +68,7 @@ hello_world('igogo'), hello_world('other igogo');
 
 https://user-images.githubusercontent.com/25539425/227186815-6870e348-46e6-4086-a89b-be416c0cc1a7.mov
 
-### Configure jobs
+### Configure Jobs
 
 Decorator `@igogo.job` has several useful parameters. 
 
@@ -86,7 +86,7 @@ Markdown example:
 
 https://user-images.githubusercontent.com/25539425/227203729-af94582c-8fe2-40fe-a6f0-6489a374a88f.mov
 
-### Display additional data
+### Display Additional Data
 
 You can use `igogo.display` inside a job to display additional content.
 For example, you can show pyplot figures.
@@ -114,7 +114,7 @@ def experiment(name, f, i):
 As noted in "Configure jobs" section, `igogo` jobs have limited number of displays.
 If you try to display more objects than job has, warning will be shown and the oldest displays will be overwritten.
 
-### Cell magic
+### Cell Magic
 
 The same way with `%%igogo`:
 
@@ -134,7 +134,7 @@ for i in range(3):
 
 All executed `igogo` jobs spawn a widget that allows to kill them. Jobs are not affected by `KeyboardInterrupt`
 
-### Killing jobs
+### Killing Jobs
 
 Apart from killing through widgets, `igogo` jobs can be killed programmatically.
 
@@ -152,7 +152,7 @@ Also, you can stop jobs of one specific function.
 - `hello_world.stop_all()`\
    Stops all `igogo` jobs created by `hello_world()`
 
-## Supported clients
+## Supported Clients
 
 Currently, `igogo` runs correctly on:
 

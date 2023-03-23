@@ -1,4 +1,6 @@
-from typing import List
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import asyncio
 import contextvars
 
@@ -7,6 +9,9 @@ from .exceptions import IgogoInvalidContext
 
 
 class IgogoContext(object):
+    """
+    This class represents the context for running a function decorated by igogo job.
+    """
     out_stream: OutputStreamsSetter
     task: asyncio.Task
     additional_outputs: AdditionalOutputs

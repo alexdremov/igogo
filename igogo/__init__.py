@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import IPython
 from .yielder import Yielder as yielder_async
 from .core import job, stop, sleep, display, clear_output, stop_all

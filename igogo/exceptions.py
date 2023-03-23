@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import io
 class IgogoInvalidContext(Exception):
     def __init__(self):

@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import asyncio
 import functools
 import inspect
@@ -20,6 +23,12 @@ _igogo_count = 0
 
 
 def _get_currently_running_cells_info():
+    """
+    Returns a string containing the IDs of all currently running IGOGO cells.
+
+    Returns:
+        str: A string containing the IDs of all currently running IGOGO cells.
+    """
     global _all_tasks
     keys = map(str, _all_tasks.keys())
     keys = '], ['.join(list(keys))
@@ -29,6 +38,13 @@ def _get_currently_running_cells_info():
 
 
 def _log_error(*argc, **kwargs):
+    """
+    Logs an error message to stderr, including information about currently running IGOGO cells.
+
+    Args:
+        *argc: Any arguments to be passed to the print function.
+        **kwargs: Any keyword arguments to be passed to the print function, with the addition of 'file' if not present.
+    """
     if not 'file' in kwargs:
         kwargs['file'] = sys.stderr
     print('[ IGOGO ]', *argc, **kwargs)
@@ -39,23 +55,49 @@ def _log_error(*argc, **kwargs):
 
 
 def _log_warning(*argc, **kwargs):
+    """
+    Logs a warning message to stderr.
+
+    Args:
+        *argc: Any arguments to be passed to the print function.
+        **kwargs: Any keyword arguments to be passed to the print function, with the addition of 'file' if not present.
+    """
     if not 'file' in kwargs:
         kwargs['file'] = sys.stderr
     print('[ IGOGO ]', *argc, **kwargs)
 
 
 def stop():
+    """
+    Stops the currently executing igogo task.
+    """
     value = get_context_or_fail()
     value.task.cancel()
 
 
 def get_running_igogo_cells():
+    """
+    Get a list of the keys of all currently running cells.
+
+    Returns:
+        list: A list of the keys of all currently running cells.
+    """
     global _all_tasks
     _update_all_tasks()
     return list(_all_tasks.keys())
 
 
 def sleep(delay, result=None):
+    """
+    Suspend the current task for a specified time.
+
+    Args:
+        delay (float): The number of seconds to suspend the task for.
+        result (object): An optional result to return when the task resumes.
+
+    Raises:
+        IgogoInvalidContext: If there is no active context.
+    """
     if not greenback.has_portal():
         raise IgogoInvalidContext()
     greenback.await_(asyncio.sleep(delay, result))
@@ -64,6 +106,16 @@ def sleep(delay, result=None):
 
 
 def display(object):
+    """
+    Display an object in the output widget of the current cell.
+    Fallback to regular display if there's no igogo job
+
+    Args:
+        object (object): The object to display.
+
+    Raises:
+        IgogoAdditionalOutputsExhausted: If there are no additional output widgets available.
+    """
     try:
         value = get_context_or_fail()
     except IgogoInvalidContext:
@@ -76,6 +128,12 @@ def display(object):
 
 
 def clear_output(including_text=True):
+    """
+    Clear the output of the current igogo cell.
+
+    Args:
+        including_text (bool): Whether to clear the text output as well. Default is True.
+    """
     value = get_context_or_fail()
     if including_text:
         value.out_stream.stdout.clear()
@@ -83,6 +141,9 @@ def clear_output(including_text=True):
 
 
 def _update_all_tasks():
+    """
+    Update the dict of all pending igogo jobs.
+    """
     global _all_tasks
 
     def filter_rule(task: asyncio.Task):
@@ -94,15 +155,27 @@ def _update_all_tasks():
 
 
 def get_pending_tasks():
+    """
+    Get a list of all pending igogo jobs.
+
+    Returns:
+        list: A list of all pending igogo jobs.
+    """
     return list(filter(lambda x: 'igogo' in x.get_name(), asyncio.all_tasks(loop=_igogo_run_loop)))
 
 
 def stop_all():
+    """
+    Cancel all pending igogo jobs.
+    """
     for task in get_pending_tasks():
         task.cancel()
 
 
 def stop_latest():
+    """
+    Cancel the latest pending igogo job.
+    """
     global _all_tasks
     _update_all_tasks()
     keys = list(_all_tasks.keys())
@@ -115,6 +188,12 @@ def stop_latest():
 
 
 def stop_by_cell_id(cell_id):
+    """
+    Cancel all pending igogo jobs in a given cell.
+
+    Args:
+        cell_id (int): The ID of the cell to cancel tasks for.
+    """
     global _all_tasks
     _update_all_tasks()
 
@@ -127,6 +206,12 @@ def stop_by_cell_id(cell_id):
 
 
 def stop_by_task_name(name):
+    """
+    Cancel a task by its name.
+
+    Args:
+        name (str): The name of the task to cancel.
+    """
     global _all_tasks
     _update_all_tasks()
 
@@ -141,6 +226,12 @@ def stop_by_task_name(name):
 
 
 def _update_igogo_widget(cell_id):
+    """
+    Update igogo widget in the specified cell
+
+    Args:
+        cell_id (int): The ID of the cell to cancel tasks for.
+    """
     global _all_tasks, _cell_widgets_display_ids
     _update_all_tasks()
     cell_id = int(cell_id)
@@ -169,6 +260,15 @@ def _update_igogo_widget(cell_id):
 
 
 def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrite=True):
+    """
+    This function decorates a given function with functionality to run it as igogo job.
+    Call to decorated function returns dictionary where 'task' represents a spawned job.
+
+    :param kind: output render type, possible options: 'text', 'html', 'markdown'
+    :param displays: number of spawned spare displays
+    :param name: human-readable igogo job name
+    :param warn_rewrite: warn if older displays are rewritten
+    """
     global _igogo_count
 
     def _decorate(function):

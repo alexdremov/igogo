@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import random
 import string
 import io

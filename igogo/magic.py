@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import IPython
 from IPython.core.magic import (Magics, magics_class, cell_magic)
 

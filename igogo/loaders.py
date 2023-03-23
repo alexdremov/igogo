@@ -1,3 +1,6 @@
+#  Copyright (c) 2023.
+#  Aleksandr Dremov
+
 import IPython.display
 from ipykernel.zmqshell import ZMQInteractiveShell
 from .output import OutputStreamsSetter, OutputText, OutputTextStyled
