@@ -53,5 +53,6 @@ def _modify_styles():
     IPython.display.display_html(IPython.display.HTML("""
     <style>
         div.output_text { padding: 0; }
+        div.output_text pre:empty { padding: 0; }
     </style>
     """))

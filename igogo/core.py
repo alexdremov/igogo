@@ -5,7 +5,9 @@ import sys
 from typing import Dict, List
 
 import IPython
+from IPython import display as ipydisplay
 import greenback
+import ipywidgets
 
 from .context import IgogoContext, get_context_or_fail, set_context
 from .output import OutputText, OutputStreamsSetter, OutputObject, OutputTextStyled
@@ -13,6 +15,7 @@ from .exceptions import IgogoInvalidContext, IgogoAdditionalOutputsExhausted
 
 _igogo_run_loop = asyncio.get_running_loop()
 _all_tasks: Dict[int, List[asyncio.Task]] = dict()
+_cell_widgets_display_ids: Dict[int, ipydisplay.DisplayHandle] = dict()
 _igogo_count = 0
 
 
@@ -112,6 +115,44 @@ def stop_by_cell_id(cell_id):
     for task in _all_tasks[cell_id]:
         task.cancel()
 
+def stop_by_task_name(name):
+    global _all_tasks
+    _update_all_tasks()
+
+    for cell_id in _all_tasks:
+        for task in _all_tasks[cell_id]:
+            if task.get_name() == name:
+                task.cancel()
+                _log_error(f"Cancelled task {name}")
+                _update_igogo_widget(cell_id)
+                return
+    _log_error(f"No task {name} was killed")
+
+def _update_igogo_widget(cell_id):
+    global _all_tasks, _cell_widgets_display_ids
+    _update_all_tasks()
+    cell_id = int(cell_id)
+    if not cell_id in _all_tasks:
+        _cell_widgets_display_ids[cell_id].update({'text/plain': ''}, raw=True)
+        return
+    if not cell_id in _cell_widgets_display_ids:
+        return
+    buttons = []
+    for task in _all_tasks[cell_id]:
+        task_name = task.get_name()
+        button = ipywidgets.Button(description=task_name, icon='stop', layout=ipywidgets.Layout(
+                width='auto', height='30px'
+            ), button_style='warning'
+        )
+        def on_button_clicked(b):
+            stop_by_task_name(b.description)
+
+        button.on_click(on_button_clicked)
+        buttons.append(button)
+    result_widget = ipywidgets.VBox([
+        ipywidgets.HBox(buttons)
+    ], layout=ipywidgets.Layout(width='100%', display='flex', align_items='flex-end'))
+    _cell_widgets_display_ids[cell_id].update(result_widget)
 
 def job(original_function=None, kind='stdout', displays=10):
     global _igogo_count
@@ -119,7 +160,14 @@ def job(original_function=None, kind='stdout', displays=10):
     def _decorate(function):
         @functools.wraps(function)
         def wrapped_function(*args, **kwargs):
-            global _igogo_count, _all_tasks
+            global _igogo_count, _all_tasks, _cell_widgets_display_ids
+            ip = IPython.get_ipython()
+            ex_count = ip.execution_count
+
+            if ex_count not in _cell_widgets_display_ids:
+                widget_handle = ipydisplay.display({'text/plain': ''}, display_id=True, raw=True)
+                _cell_widgets_display_ids.setdefault(ex_count, widget_handle)
+
             output_stream = OutputStreamsSetter(stdout=OutputText(kind=kind), stderr=OutputText(kind='stderr'))
             additional_outputs = list(reversed([OutputObject() for _ in range(displays)]))
 
@@ -130,8 +178,10 @@ def job(original_function=None, kind='stdout', displays=10):
                 )
                 output_stream.activate()
                 if inspect.iscoroutinefunction(function):
-                    return await function(*args, **kwargs)
-                return function(*args, **kwargs)
+                    result = await function(*args, **kwargs)
+                else:
+                    result = function(*args, **kwargs)
+                return result
 
             coro = func_context_setter()
 
@@ -142,6 +192,7 @@ def job(original_function=None, kind='stdout', displays=10):
             wrapped_function.tasks.append(task)
 
             def done_callback(t):
+                _update_igogo_widget(ex_count)
                 try:
                     exception = task.exception()
                     if exception is not None:
@@ -153,9 +204,10 @@ def job(original_function=None, kind='stdout', displays=10):
             task.set_name(f'igogo_{_igogo_count}')
             _igogo_count += 1
 
-            ip = IPython.get_ipython()
-            _all_tasks.setdefault(ip.execution_count, [])
-            _all_tasks[ip.execution_count].append(task)
+            _all_tasks.setdefault(ex_count, [])
+            _all_tasks[ex_count].append(task)
+
+            _update_igogo_widget(ex_count)
 
             return dict(
                 task=task
