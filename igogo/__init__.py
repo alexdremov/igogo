@@ -4,7 +4,7 @@ from .core import job, stop, sleep, display, clear_output, stop_all
 from .core import stop_by_cell_id, stop_latest, get_running_igogo_cells
 from .loaders import register_hooks as _register_hooks
 from .loaders import IpythonWatcher
-from .loaders import load_ipython_extension
+from .loaders import load_ipython_extension, _modify_styles
 
 yielder = yielder_async.igogo_await
 
@@ -15,3 +15,4 @@ if not __igogo_inited:
     _ip = IPython.get_ipython()
     _watcher = IpythonWatcher(_ip)
     _register_hooks(_watcher, _ip)
+    _modify_styles()

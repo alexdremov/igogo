@@ -1,3 +1,4 @@
+import IPython.display
 from ipykernel.zmqshell import ZMQInteractiveShell
 from .output import OutputStreamsSetter, OutputText, OutputTextStyled
 
@@ -47,3 +48,10 @@ def load_ipython_extension(ipython):
     """
     from .magic import IgogoMagic
     ipython.register_magics(IgogoMagic)
+
+def _modify_styles():
+    IPython.display.display_html(IPython.display.HTML("""
+    <style>
+        div.output_text { padding: 0; }
+    </style>
+    """))

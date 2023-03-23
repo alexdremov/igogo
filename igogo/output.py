@@ -27,10 +27,10 @@ class OutputBase:
             'text': 'text/plain',
             'markdown': 'text/markdown',
             'html': 'text/html',
-            'stderr': 'application/vnd.jupyter.stderr',
-            'stdout': 'application/vnd.jupyter.stdout'
+            'stderr': 'text/plain',
+            'stdout': 'text/plain'
         }
-        self.objs = []
+        self.objs = [{'text/plain': ''}]
         if not is_lab_notebook():
             self.display()
 
@@ -48,7 +48,6 @@ class OutputBase:
 
     def _build_obj(self, content, kind):
         mime_type = self.dic_kind.get(kind, kind)
-        print({mime_type: content}, file=open('log.txt', 'w'))
         return {mime_type: content}
 
     def _update(self):
