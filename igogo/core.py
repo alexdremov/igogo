@@ -218,8 +218,8 @@ def stop_by_task_name(name):
     for cell_id in _all_tasks:
         for task in _all_tasks[cell_id]:
             if task.get_name() == name:
+                _log_error(f"Cancelling task {name}")
                 task.cancel()
-                _log_error(f"Cancelled task {name}")
                 _update_igogo_widget(cell_id)
                 return
     _log_error(f"No task {name} was killed")
@@ -259,7 +259,7 @@ def _update_igogo_widget(cell_id):
     _cell_widgets_display_ids[cell_id].update(result_widget)
 
 
-def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrite=True):
+def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrite=True, verbose=False):
     """
     This function decorates a given function with functionality to run it as igogo job.
     Call to decorated function returns dictionary where 'task' represents a spawned job.
@@ -288,16 +288,30 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
             additional_outputs = AdditionalOutputs(count=displays, no_warn=not warn_rewrite)
 
             async def func_context_setter():
+                if verbose:
+                    _log_warning('Ensuring has portal')
                 await greenback.ensure_portal()
                 set_context(
                     IgogoContext(task, output_stream, additional_outputs)
                 )
+                if verbose:
+                    _log_warning('About to set outputs')
                 output_stream.activate()
+                if verbose:
+                    _log_warning('Did set outputs, starting function')
                 try:
                     result = function(*args, **kwargs)
                 except Exception as e:
+                    if verbose:
+                        _log_warning('Caught an exception')
                     traceback.print_exc()
+                    output_stream.deactivate()
+                    if verbose:
+                        _log_warning('Deactivated output')
                     return
+                output_stream.deactivate()
+                if verbose:
+                    _log_warning('Deactivated output')
                 return result
 
             coro = func_context_setter()
@@ -309,6 +323,8 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
             wrapped_function.tasks.append(task)
 
             def done_callback(t):
+                if verbose:
+                    _log_warning(f'In done_callback, task: {t}')
                 _update_igogo_widget(ex_count)
                 output_stream.deactivate()
                 try:
