@@ -53,6 +53,8 @@ def sleep(delay, result=None):
     if not greenback.has_portal():
         raise IgogoInvalidContext()
     greenback.await_(asyncio.sleep(delay, result))
+    value = get_context_or_fail()
+    value.out_stream.activate()
 
 
 def display(object):
@@ -140,9 +142,9 @@ def _update_igogo_widget(cell_id):
     buttons = []
     for task in _all_tasks[cell_id]:
         task_name = task.get_name()
-        button = ipywidgets.Button(description=task_name, icon='stop', layout=ipywidgets.Layout(
+        button = ipywidgets.Button(description=task_name, icon='stop-circle', layout=ipywidgets.Layout(
                 width='auto', height='30px'
-            ), button_style='warning'
+            ), button_style='warning', tooltip=f'This will kill {task_name} running in cell [{cell_id}]'
         )
         def on_button_clicked(b):
             stop_by_task_name(b.description)
@@ -154,7 +156,7 @@ def _update_igogo_widget(cell_id):
     ], layout=ipywidgets.Layout(width='100%', display='flex', align_items='flex-end'))
     _cell_widgets_display_ids[cell_id].update(result_widget)
 
-def job(original_function=None, kind='stdout', displays=10):
+def job(original_function=None, kind='stdout', displays=10, name=''):
     global _igogo_count
 
     def _decorate(function):
@@ -201,7 +203,7 @@ def job(original_function=None, kind='stdout', displays=10):
                     pass
 
             task.add_done_callback(done_callback)
-            task.set_name(f'igogo_{_igogo_count}')
+            task.set_name(f'igogo #{_igogo_count}' + (f'-{name}' if name != '' else ''))
             _igogo_count += 1
 
             _all_tasks.setdefault(ex_count, [])
