@@ -3,6 +3,7 @@
 
 import asyncio
 import contextvars
+from typing import Optional
 
 from .output import OutputStreamsSetter, OutputObject, AdditionalOutputs
 from .exceptions import IgogoInvalidContext
@@ -22,7 +23,7 @@ class IgogoContext(object):
         self.additional_outputs = additional_outputs
 
 
-_context: contextvars.ContextVar[IgogoContext | None] = contextvars.ContextVar("igogo_context", default=None)
+_context: contextvars.ContextVar[Optional[IgogoContext]] = contextvars.ContextVar("igogo_context", default=None)
 
 
 def get_context_or_none() -> IgogoContext:
