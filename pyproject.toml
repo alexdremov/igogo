@@ -20,7 +20,6 @@ classifiers = [
 keywords = ["jupyterlab", "ipython", "jupyter", "execute", "python"]
 dependencies = [
     'IPython >= 8.0.0',
-    'ipykernel >= 6.0.0',
     'greenback >= 1.1.1'
 ]
 packages = [
