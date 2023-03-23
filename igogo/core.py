@@ -9,7 +9,7 @@ from IPython import display as ipydisplay
 import greenback
 import ipywidgets
 
-from .context import IgogoContext, get_context_or_fail, set_context
+from .context import IgogoContext, get_context_or_fail, set_context, AdditionalOutputs
 from .output import OutputText, OutputStreamsSetter, OutputObject, OutputTextStyled
 from .exceptions import IgogoInvalidContext, IgogoAdditionalOutputsExhausted
 
@@ -38,6 +38,12 @@ def _log_error(*argc, **kwargs):
     print(f'[ IGOGO ] Currently running IGOGO cells: {running_s}', file=kwargs['file'])
 
 
+def _log_warning(*argc, **kwargs):
+    if not 'file' in kwargs:
+        kwargs['file'] = sys.stderr
+    print('[ IGOGO ]', *argc, **kwargs)
+
+
 def stop():
     value = get_context_or_fail()
     value.task.cancel()
@@ -58,20 +64,22 @@ def sleep(delay, result=None):
 
 
 def display(object):
-    value = get_context_or_fail()
-    if len(value.additional_outputs) == 0:
+    try:
+        value = get_context_or_fail()
+    except IgogoInvalidContext:
+        ipydisplay.display(object)
+        return
+    if value.additional_outputs.is_empty():
         raise IgogoAdditionalOutputsExhausted()
-    out = value.additional_outputs.pop()
+    out = value.additional_outputs.get_next()
     out.add_object(object)
-    value.additional_outputs.insert(0, out)
 
 
 def clear_output(including_text=True):
     value = get_context_or_fail()
     if including_text:
         value.out_stream.stdout.clear()
-    for out in value.additional_outputs:
-        out.clear()
+    value.additional_outputs.clear()
 
 
 def _update_all_tasks():
@@ -117,6 +125,7 @@ def stop_by_cell_id(cell_id):
     for task in _all_tasks[cell_id]:
         task.cancel()
 
+
 def stop_by_task_name(name):
     global _all_tasks
     _update_all_tasks()
@@ -129,6 +138,7 @@ def stop_by_task_name(name):
                 _update_igogo_widget(cell_id)
                 return
     _log_error(f"No task {name} was killed")
+
 
 def _update_igogo_widget(cell_id):
     global _all_tasks, _cell_widgets_display_ids
@@ -143,9 +153,10 @@ def _update_igogo_widget(cell_id):
     for task in _all_tasks[cell_id]:
         task_name = task.get_name()
         button = ipywidgets.Button(description=task_name, icon='stop-circle', layout=ipywidgets.Layout(
-                width='auto', height='30px'
-            ), button_style='warning', tooltip=f'This will kill {task_name} running in cell [{cell_id}]'
-        )
+            width='auto', height='30px'
+        ), button_style='warning', tooltip=f'This will kill {task_name} running in cell [{cell_id}]'
+                                   )
+
         def on_button_clicked(b):
             stop_by_task_name(b.description)
 
@@ -156,7 +167,8 @@ def _update_igogo_widget(cell_id):
     ], layout=ipywidgets.Layout(width='100%', display='flex', align_items='flex-end'))
     _cell_widgets_display_ids[cell_id].update(result_widget)
 
-def job(original_function=None, kind='stdout', displays=10, name=''):
+
+def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrite=True):
     global _igogo_count
 
     def _decorate(function):
@@ -171,7 +183,7 @@ def job(original_function=None, kind='stdout', displays=10, name=''):
                 _cell_widgets_display_ids.setdefault(ex_count, widget_handle)
 
             output_stream = OutputStreamsSetter(stdout=OutputText(kind=kind), stderr=OutputText(kind='stderr'))
-            additional_outputs = list(reversed([OutputObject() for _ in range(displays)]))
+            additional_outputs = AdditionalOutputs(count=displays, no_warn=not warn_rewrite)
 
             async def func_context_setter():
                 await greenback.ensure_portal()

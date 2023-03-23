@@ -12,6 +12,9 @@ class Yielder:
             return
         elif not greenback.has_portal():
             raise IgogoInvalidContext()
+        from igogo import get_running_igogo_cells
+        if len(get_running_igogo_cells()) == 0:
+            return
         greenback.await_(cls())
         value = get_context_or_fail()
         value.out_stream.activate()

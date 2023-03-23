@@ -2,6 +2,8 @@ import random
 import string
 import io
 import sys
+from typing import List
+
 from IPython import display
 from IPython.core.interactiveshell import InteractiveShell
 
@@ -121,3 +123,27 @@ class OutputStreamsSetter:
     def activate(self):
         sys.stdout = self.stdout
         sys.stderr = self.stderr
+
+class AdditionalOutputs:
+    additional_outputs: List[OutputObject]
+    counter: int
+    no_warn: bool
+
+    def __init__(self, count=1, no_warn=False):
+        self.additional_outputs = [OutputObject() for _ in range(count)]
+        self.counter = 0
+        self.no_warn = no_warn
+
+    def get_next(self):
+        if self.counter == len(self.additional_outputs) and not self.no_warn:
+            from .core import _log_warning
+            _log_warning(f'Exhausted all {self.counter} displays. Will overwrite the oldest.')
+        self.counter += 1
+        return self.additional_outputs[(self.counter - 1) % len(self.additional_outputs)]
+
+    def is_empty(self):
+        return len(self.additional_outputs) == 0
+
+    def clear(self):
+        for disp in self.additional_outputs:
+            disp.clear()

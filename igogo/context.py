@@ -2,16 +2,16 @@ from typing import List
 import asyncio
 import contextvars
 
-from .output import OutputStreamsSetter, OutputObject
+from .output import OutputStreamsSetter, OutputObject, AdditionalOutputs
 from .exceptions import IgogoInvalidContext
 
 
 class IgogoContext(object):
     out_stream: OutputStreamsSetter
     task: asyncio.Task
-    additional_outputs: List[OutputObject]
+    additional_outputs: AdditionalOutputs
 
-    def __init__(self, task: asyncio.Task, out_stream: OutputStreamsSetter, additional_outputs: List[OutputObject]):
+    def __init__(self, task: asyncio.Task, out_stream: OutputStreamsSetter, additional_outputs: AdditionalOutputs):
         self.out_stream = out_stream
         self.task = task
         self.additional_outputs = additional_outputs
