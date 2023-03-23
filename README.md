@@ -1,11 +1,11 @@
 # igogo 🐎🏎️
 
----
-
 Execute several jupyter cells at the same time
 
 > Have you ever just sited and watched a long-running jupyter cell?
 > **Now, you can continue to work in the same notebook freely**
+
+---
 
 ## Wait, isn't it just a background job? No.
 
@@ -14,6 +14,7 @@ You can freely operate with your notebook variables without the risk of corrupti
 - Beautiful output. When several cells execute in parallel,
 all printed data is displayed in corresponding cell's output. No more twisted and messed out concurrent outputs.
 - Easily cancel jobs, wait for completion, and start the new ones.
+- Control execution of jobs through widgets.
 
 ## Use cases
 1) You have a long-running cell, and you need to check something.
