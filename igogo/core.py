@@ -6,6 +6,7 @@ import functools
 import inspect
 import sys
 from typing import Dict, List
+import traceback
 
 import IPython
 from IPython import display as ipydisplay
@@ -98,10 +99,9 @@ def sleep(delay, result=None):
     Raises:
         IgogoInvalidContext: If there is no active context.
     """
-    if not greenback.has_portal():
-        raise IgogoInvalidContext()
-    greenback.await_(asyncio.sleep(delay, result))
     value = get_context_or_fail()
+    value.out_stream.deactivate()
+    greenback.await_(asyncio.sleep(delay, result))
     value.out_stream.activate()
 
 
@@ -272,6 +272,8 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
     global _igogo_count
 
     def _decorate(function):
+        assert not inspect.iscoroutinefunction(function), "Function must not be async"
+
         @functools.wraps(function)
         def wrapped_function(*args, **kwargs):
             global _igogo_count, _all_tasks, _cell_widgets_display_ids
@@ -291,10 +293,11 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
                     IgogoContext(task, output_stream, additional_outputs)
                 )
                 output_stream.activate()
-                if inspect.iscoroutinefunction(function):
-                    result = await function(*args, **kwargs)
-                else:
+                try:
                     result = function(*args, **kwargs)
+                except Exception as e:
+                    traceback.print_exc()
+                    return
                 return result
 
             coro = func_context_setter()
@@ -307,6 +310,7 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
 
             def done_callback(t):
                 _update_igogo_widget(ex_count)
+                output_stream.deactivate()
                 try:
                     exception = task.exception()
                     if exception is not None:

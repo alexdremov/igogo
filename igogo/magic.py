@@ -16,7 +16,7 @@ class IgogoMagic(Magics):
         prefix = "def __igogo_magic_wrapper():\n" \
                  "    import igogo\n" \
                  f"    @igogo.job(**dict({args}))\n" \
-                 "    async def execute():\n"\
+                 "    def execute():\n"\
                  "        global " + ', '.join(list(IPython.get_ipython().user_ns.keys())) + '\n'
         cell = prefix + '\n'.join(['        ' + line for line in cell.split('\n')])
         cell += "\n" + \

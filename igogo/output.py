@@ -122,10 +122,22 @@ class OutputStreamsSetter:
     def __init__(self, stdout: OutputText, stderr: OutputText):
         self.stdout = stdout
         self.stderr = stderr
+        self.activated = False
 
-    def activate(self):
-        sys.stdout = self.stdout
-        sys.stderr = self.stderr
+    def _exchange(self):
+        self.stdout, sys.stdout = sys.stdout, self.stdout
+        self.stderr, sys.stderr = sys.stderr, self.stderr
+
+    def activate(self, force=False):
+        if not self.activated or force:
+            self._exchange()
+            self.activated = True
+
+    def deactivate(self, force=False):
+        if self.activated or force:
+            self._exchange()
+            self.activated = False
+
 
 class AdditionalOutputs:
     additional_outputs: List[OutputObject]

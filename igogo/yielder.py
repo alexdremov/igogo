@@ -34,8 +34,9 @@ class Yielder:
         from igogo import get_running_igogo_cells
         if len(get_running_igogo_cells()) == 0:
             return
-        greenback.await_(cls())
         value = get_context_or_fail()
+        value.out_stream.deactivate()
+        greenback.await_(cls())
         value.out_stream.activate()
 
     def __await__(self):
@@ -45,10 +46,4 @@ class Yielder:
 
         Otherwise, this method suspends execution.
         """
-        try:
-            get_context_or_fail()
-        except IgogoInvalidContext:
-            return
         yield
-        value = get_context_or_fail()
-        value.out_stream.activate()
