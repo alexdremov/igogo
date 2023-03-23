@@ -162,3 +162,75 @@ Currently, `igogo` runs correctly on:
 Does not run on:
 - VSCode. For some reason it does not update display data. Therefore, no output is produced.
 - DataSpell. It displays `[object Object]` and not output.
+
+## More Examples
+
+### Process data and montitor execution
+
+```python
+import igogo
+import numpy as np
+from tqdm.auto import tqdm
+%load_ext igogo
+
+raw_data = np.random.randn(100000, 100)
+result = []
+```
+
+```python
+def row_processor(row):
+    return np.mean(row)
+```
+
+```python
+%%igogo
+for i in tqdm(range(len(raw_data))):
+    result.append(row_processor(raw_data[i]))
+    igogo.yielder()
+```
+
+```python
+result[-1]
+```
+
+### Process data in chunks
+
+```python
+import igogo
+import numpy as np
+from tqdm.auto import tqdm
+%load_ext igogo
+
+raw_data = np.random.randn(5000000, 100)
+
+igogo_yield_freq = 32
+igogo_first_step_cache = []
+
+result = []
+```
+
+```python
+%%igogo
+
+for i in tqdm(range(len(raw_data))):
+    processed = np.log(raw_data[i] * raw_data[i])
+    igogo_first_step_cache.append(processed)
+    
+    if i > 0 and i % igogo_yield_freq == 0:
+        igogo.yielder()  # allow other jobs to execute
+```
+
+```python
+%%igogo
+
+for i in tqdm(range(len(raw_data))):
+    while i >= len(igogo_first_step_cache):  # wait for producer to process data
+        igogo.yielder()
+    
+    result.append(np.mean(igogo_first_step_cache[i]))
+    
+```
+
+https://user-images.githubusercontent.com/25539425/227224077-a3ce664c-cb52-4aa2-a3fe-71ac5a03cdeb.mov
+
+
