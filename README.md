@@ -158,7 +158,6 @@ Currently, `igogo` runs correctly on:
 
 - Jupyter Lab
 - Jupyter
-- DataSpell
 
 Does not run on:
 - VSCode. For some reason it does not update display data. Therefore, no output is produced.
