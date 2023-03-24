@@ -44,6 +44,8 @@ all printed data is displayed in the corresponding cell's output. No more twiste
 
 At the core of igogo is collaborative execution. Jobs need to explicitly allow other jobs to execute through `igogo.yielder()`. Mind that regular cells also represent a job.
 
+Placing `igogo.yielder()` in code that is not executed in igogo job is not a mistake. It will return immediately. So, you don't need to care about keeping `igogo.yielder()` only in igogo jobs. You can place it anywhere
+
 To start an igogo job, you can use `%%igogo` cell magic or function decorator. 
 
 ```python
@@ -154,16 +156,23 @@ Also, you can stop jobs of one specific function.
 
 ## Supported Clients
 
-Currently, `igogo` runs correctly on:
+Currently, `igogo` runs fully correct on:
 
 - Jupyter Lab
 - Jupyter
 
-Does not run on:
+Runs but has problems with output from igogo jobs. Jobs are executed, but there could be problems with widgets and output:
 - VSCode. For some reason it does not update display data. Therefore, no output is produced.
 - DataSpell. It displays `[object Object]` and not output.
+- Colab. It does not support updating content of executed cells
 
 ## More Examples
+
+### Train model and check metrics 
+
+https://user-images.githubusercontent.com/25539425/227651626-cba8a317-a986-4971-9639-84cdb388e2d3.mov
+
+Also, you can modify training parameters, freeze/unfreeze layers, switch datasets, etc. All you need is to place `igogo.yielder()` in train loop.
 
 ### Process data and montitor execution
 
