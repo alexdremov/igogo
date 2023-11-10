@@ -7,6 +7,7 @@ import io
 import sys
 from typing import List
 
+import matplotlib.pyplot as plt
 from IPython import display
 from IPython.core.interactiveshell import InteractiveShell
 
@@ -119,10 +120,13 @@ class OutputTextStyled(OutputBase, io.IOBase):
 
 
 class OutputStreamsSetter:
+
     def __init__(self, stdout: OutputText, stderr: OutputText):
         self.stdout = stdout
         self.stderr = stderr
         self.activated = False
+        self._deactivate_callbacks = []
+        self._activate_callbacks = []
 
     def _exchange(self):
         self.stdout, sys.stdout = sys.stdout, self.stdout
@@ -132,22 +136,41 @@ class OutputStreamsSetter:
         if not self.activated or force:
             self._exchange()
             self.activated = True
+            self._run_activate_callbacks()
 
     def deactivate(self, force=False):
         if self.activated or force:
+            self._run_deactivate_callbacks()
             self._exchange()
             self.activated = False
+
+    def _run_activate_callbacks(self):
+        for f in self._activate_callbacks:
+            f()
+
+    def _run_deactivate_callbacks(self):
+        for f in self._deactivate_callbacks:
+            f()
+
+    def register_activate_callback(self, f):
+        self._activate_callbacks.append(f)
+
+    def register_deactivate_callback(self, f):
+        self._deactivate_callbacks.append(f)
 
 
 class AdditionalOutputs:
     additional_outputs: List[OutputObject]
     counter: int
     no_warn: bool
+    enter_figs_num: List[int]
+    auto_display_figures: bool
 
-    def __init__(self, count=1, no_warn=False):
+    def __init__(self, count=1, no_warn=False, auto_display_figures=True):
         self.additional_outputs = [OutputObject() for _ in range(count)]
         self.counter = 0
         self.no_warn = no_warn
+        self.auto_display_figures = auto_display_figures
 
     def get_next(self):
         if self.counter == len(self.additional_outputs) and not self.no_warn:
@@ -162,3 +185,13 @@ class AdditionalOutputs:
     def clear(self):
         for disp in self.additional_outputs:
             disp.clear()
+
+    def after_context_enter(self):
+        self.enter_figs_num = plt.get_fignums()
+
+    def before_context_exit(self):
+        if self.auto_display_figures and self.enter_figs_num != plt.get_fignums():
+            from .core import display as igogo_display
+            fig = plt.gcf()
+            igogo_display(fig)
+            plt.close(fig)

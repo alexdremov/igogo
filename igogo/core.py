@@ -5,10 +5,11 @@ import asyncio
 import functools
 import inspect
 import sys
-from typing import Dict, List
+from typing import Dict, List, Any
 import traceback
 
 import IPython
+import matplotlib.pyplot as plt
 from IPython import display as ipydisplay
 import greenback
 import ipywidgets
@@ -105,13 +106,16 @@ def sleep(delay, result=None):
     value.out_stream.activate()
 
 
-def display(object):
+def display(object: Any, close_if_figure: bool = True):
     """
     Display an object in the output widget of the current cell.
     Fallback to regular display if there's no igogo job
 
+    This will close pyplot figure by default so that it is not displayed twice
+
     Args:
-        object (object): The object to display.
+        object (Any): The object to display.
+        close_if_figure (bool): Close object if it is pyplot figure
 
     Raises:
         IgogoAdditionalOutputsExhausted: If there are no additional output widgets available.
@@ -125,6 +129,8 @@ def display(object):
         raise IgogoAdditionalOutputsExhausted()
     out = value.additional_outputs.get_next()
     out.add_object(object)
+    if isinstance(object, plt.Figure) and close_if_figure:
+        plt.close(object)
 
 
 def clear_output(including_text=True):
@@ -259,7 +265,8 @@ def _update_igogo_widget(cell_id):
     _cell_widgets_display_ids[cell_id].update(result_widget)
 
 
-def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrite=True, verbose=False):
+def job(original_function=None, kind='stdout', displays=1, name='', warn_rewrite=True, verbose=False,
+        auto_display_figures=True):
     """
     This function decorates a given function with functionality to run it as igogo job.
     Call to decorated function returns dictionary where 'task' represents a spawned job.
@@ -268,6 +275,8 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
     :param displays: number of spawned spare displays
     :param name: human-readable igogo job name
     :param warn_rewrite: warn if older displays are rewritten
+    :param verbose: print debug igogo information
+    :param auto_display_figures: display figures created inside igogo automatically
     """
     global _igogo_count
 
@@ -285,15 +294,22 @@ def job(original_function=None, kind='stdout', displays=10, name='', warn_rewrit
                 _cell_widgets_display_ids.setdefault(ex_count, widget_handle)
 
             output_stream = OutputStreamsSetter(stdout=OutputText(kind=kind), stderr=OutputText(kind='stderr'))
-            additional_outputs = AdditionalOutputs(count=displays, no_warn=not warn_rewrite)
+            additional_outputs = AdditionalOutputs(
+                count=displays,
+                no_warn=not warn_rewrite,
+                auto_display_figures=auto_display_figures
+            )
 
             async def func_context_setter():
                 if verbose:
                     _log_warning('Ensuring has portal')
                 await greenback.ensure_portal()
-                set_context(
-                    IgogoContext(task, output_stream, additional_outputs)
+                context = IgogoContext(
+                    task,
+                    output_stream,
+                    additional_outputs
                 )
+                set_context(context)
                 if verbose:
                     _log_warning('About to set outputs')
                 output_stream.activate()

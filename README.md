@@ -78,11 +78,13 @@ Decorator `@igogo.job` has several useful parameters.
    Allows to set how to render output. Possible options: `text`, `markdown`, `html` Default: `text`
 - `displays`\
    As igogo job modify already executed cell, it needs to have spare placeholders for rich output.
-   This parameter specifies how many spare displays to spawn. Default: `10`
+   This parameter specifies how many spare displays to spawn. Default: `1`
 - `name`\
    User-friendly name of igogo job.
 - `warn_rewrite`\
    Should warn rewriting older displays? Default: `True`
+- `auto_display_figures`\
+   Should display pyplot figures created inside igogo automatically? Default: `True`
 
 Markdown example:
 
@@ -90,8 +92,9 @@ https://user-images.githubusercontent.com/25539425/227203729-af94582c-8fe2-40fe-
 
 ### Display Additional Data
 
-You can use `igogo.display` inside a job to display additional content.
-For example, you can show pyplot figures.
+Pyplot figures will be automatically displayed in igogo cell.
+
+You can also use `igogo.display` inside a job to display any other content or several figures. Mind that displays must be pre-allocated by specifying displays number in `igogo.job(displays=...)`
 
 ```python
 import numpy as np
@@ -99,18 +102,23 @@ import matplotlib.pyplot as plt
 import igogo
 
 def experiment(name, f, i):
-    x = np.linspace(0.01, i, 1000)
-    fig, ax = plt.subplots(figsize=(5, 1))
-    ax.plot(x, f(x), c='r')
-    ax.set_title(name)
-    
-    # display figure to job's output.
-    # if called from outside job, falls back to 
-    # IPython.display.display
-    igogo.display(fig)
-    # close pyplot so that it does not show content
-    # automatically
-    plt.close() 
+     x = np.linspace(0, i / 10, 100)
+     fig = plt.figure()
+     plt.plot(
+         x,
+         f(x)
+     )
+     plt.gca().set_title(name)
+     igogo.display(fig)
+     
+     fig = plt.figure()
+     plt.scatter(
+         x,
+         f(x)
+     )
+     plt.gca().set_title(name)
+     igogo.display(fig)
+     igogo.sleep(0.05)
 ```
 
 As noted in "Configure jobs" section, `igogo` jobs have limited number of displays.
@@ -167,6 +175,10 @@ Runs but has problems with output from igogo jobs. Jobs are executed, but there 
 - Colab. It does not support updating content of executed cells
 
 ## More Examples
+
+[**Check out pretty notebooks**](https://github.com/alexdremov/igogo/tree/main/examples)
+
+---
 
 ### Train model and check metrics 
 

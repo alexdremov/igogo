@@ -35,9 +35,11 @@ class Yielder:
         if len(get_running_igogo_cells()) == 0:
             return
         value = get_context_or_fail()
+
         value.out_stream.deactivate()
         greenback.await_(cls())
         value.out_stream.activate()
+        value.additional_outputs.after_context_enter()
 
     def __await__(self):
         """

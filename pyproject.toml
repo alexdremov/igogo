@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "igogo"
-version = "1.0.3"
+version = "1.1.0"
 authors = [
     { name = "Alex Dremov", email = "igogo@alexdremov.me" },
 ]
 description = "Execute several jupyter cells simultaneously"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,11 +20,12 @@ classifiers = [
 keywords = ["jupyterlab", "ipython", "jupyter", "execute", "python"]
 dependencies = [
     'IPython >= 8.0.0',
-    'greenback >= 1.1.1'
+    'greenback >= 1.1.1',
+    'matplotlib >= 3.5.0'
 ]
 packages = [
     { include = "igogo" }
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/AlexRoar/igogo"
+"Homepage" = "https://github.com/alexdremov/igogo"
